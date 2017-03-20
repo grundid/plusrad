@@ -61,7 +61,6 @@ dependencies {
     compile "com.google.android.gms:play-services-places:${googlePlayServices}"
     compile "com.google.android.gms:play-services-location:${googlePlayServices}"
 
-    compile 'com.android.support.constraint:constraint-layout:1.0.0'
     compile 'de.grundid.opendatalab:geojson-jackson:1.8'
     compile 'com.fasterxml.jackson.core:jackson-databind:2.8.7'
     testCompile 'junit:junit:4.12'
