@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">PlusRad</string>
+    <string name="action_settings">Settings</string>
+    <string name="mapOfTrip">Karte</string>
+    <string name="pauseButtonLabel">Pause</string>
+    <string name="finishedButtonLabel">Beenden</string>
+    <string name="previous_trips">Vorherige Strecken</string>
+    <string name="startNewTrip">Jetzt starten</string>
+    <string name="action_share">Teilen</string>
+</resources>

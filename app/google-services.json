@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "1012524756258",
+    "firebase_url": "https://plusradapp.firebaseio.com",
+    "project_id": "plusradapp",
+    "storage_bucket": "plusradapp.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1012524756258:android:50547a89b01c1576",
+        "android_client_info": {
+          "package_name": "de.grundid.plusrad"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1012524756258-tq2lunhanilrcmv6a6k0u7br6emuip9j.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBgd1vH1WuoMihdzahXA86PIhka4cq1nEk"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
