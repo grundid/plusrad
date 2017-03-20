@@ -18,13 +18,19 @@ android {
             keyAlias "plusraddebug"
             keyPassword "plusrad"
         }
+        release {
+            storeFile file(System.getenv("ANDROID_KEYSTORE_DIR") + "/plusrad.keystore")
+            storePassword System.getenv("ANDROID_STOREPWD")
+            keyAlias "plusradapp"
+            keyPassword System.getenv("ANDROID_KEYPWD")
+        }
     }
     buildTypes {
         debug {
             minifyEnabled false
         }
         release {
-            minifyEnabled true
+            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
