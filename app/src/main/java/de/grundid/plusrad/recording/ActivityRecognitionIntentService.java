@@ -19,65 +19,40 @@ public class ActivityRecognitionIntentService extends IntentService {
 	public ActivityRecognitionIntentService() {
 		// Set the label for the service's background thread
 		super("ActivityRecognitionIntentService");
-		broadcastIntent = new Intent();
-		broadcastIntent.addCategory(ACTIVITY_SERVICE);
-		broadcastIntent.setAction(NOTIFICATION_SERVICE);
+		broadcastIntent = new Intent("activityUpdate");
 	}
 
 	@Override
 	public void onCreate() {
 		super.onCreate();
 		broadcastManager = LocalBroadcastManager.getInstance(getApplicationContext());
+		Log.i("PRAD", "create ActivityRecognitionIntentService");
 	}
 
-	/**
-	 * Called when a new activity detection update is available.
-	 */
+	@Override
+	public void onDestroy() {
+		super.onDestroy();
+		Log.i("PRAD", "destroy ActivityRecognitionIntentService");
+	}
+
 	@Override
 	protected void onHandleIntent(Intent intent) {
-		// If the incoming intent contains an update
 		if (ActivityRecognitionResult.hasResult(intent)) {
-			// Get the update
 			ActivityRecognitionResult result =
 					ActivityRecognitionResult.extractResult(intent);
-			// Get the most probable activity
 			DetectedActivity mostProbableActivity =
 					result.getMostProbableActivity();
-			/*
-			 * Get the probability that this activity is the
-             * the user's actual activity
-             */
 			int confidence = mostProbableActivity.getConfidence();
-			/*
-             * Get an integer describing the type of activity
-             */
 			int activityType = mostProbableActivity.getType();
 			String activityName = getNameFromType(activityType);
-			/*
-             * At this point, you have retrieved all the information
-             * for the current update. You can display this
-             * information to the user in a notification, or
-             * send it to an Activity or Service in a broadcast
-             * Intent.
-             */
-			// show result in a message
-			Log.d("detected activity", activityName + " with confidence " + Integer.toString(confidence));
+			broadcastIntent.putExtra("activityName", activityName);
+			broadcastIntent.putExtra("confidence", confidence);
+			broadcastIntent.putExtra("activityType", activityType);
+			Log.i("PRAD", "detected activity: " + activityName + " with confidence " + Integer.toString(confidence));
 			broadcastManager.sendBroadcast(broadcastIntent);
-		} else {
-			/*
-             * This implementation ignores intents that don't contain
-             * an activity update. If you wish, you can report them as
-             * errors.
-             */
 		}
 	}
 
-	/**
-	 * Map detected activity types to strings
-	 *
-	 * @param activityType The detected activity type
-	 * @return A user-readable name for the type
-	 */
 	private String getNameFromType(int activityType) {
 		switch (activityType) {
 			case DetectedActivity.IN_VEHICLE:

@@ -38,9 +38,9 @@ public class RecordingServiceBinder extends Binder implements RecordingService.I
 		return recordingService.getTrip();
 	}
 
-	public void reset() {
+/*	public void reset() {
 		recordingService.setState(RecordingService.STATE_IDLE);
-	}
+	}*/
 
 	public void setListener(RecordingService.UpdateListener updateListener) {
 		recordingService.setUpdateListener(updateListener);

@@ -41,6 +41,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import com.google.android.gms.location.DetectedActivity;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -56,7 +57,10 @@ import de.grundid.plusrad.recording.DbAdapter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ShowMap extends AppCompatActivity {
 
@@ -123,7 +127,7 @@ public class ShowMap extends AppCompatActivity {
 			return super.onOptionsItemSelected(item);
 	}
 
-	private class AddPointsToMapLayerTask extends AsyncTask<Long, Integer, PolylineOptions> {
+	private class AddPointsToMapLayerTask extends AsyncTask<Long, Integer, List<PolylineOptions>> {
 
 		private Context context;
 
@@ -132,35 +136,71 @@ public class ShowMap extends AppCompatActivity {
 		}
 
 		@Override
-		protected PolylineOptions doInBackground(Long... trips) {
+		protected List<PolylineOptions> doInBackground(Long... trips) {
 			Log.i("PRAD", "Loading points");
 			DbAdapter dbAdapter = new DbAdapter(context);
 			List<CyclePoint> points = dbAdapter.fetchAllCoordsForTrip(tripId);
-			PolylineOptions polygonOptions = new PolylineOptions().color(0xFF29B6F6).width(20);
+			int lastActivityType = DetectedActivity.UNKNOWN;
+			Map<Integer, Integer> activities = new HashMap<>();
+			activities.put(DetectedActivity.IN_VEHICLE, 0xFFBF360C);
+			activities.put(DetectedActivity.ON_BICYCLE, 0xFF29B6F6);
+			activities.put(DetectedActivity.ON_FOOT, 0xFF00838F);
+			activities.put(DetectedActivity.UNKNOWN, 0xFF455A64);
+			PolylineOptions currentPolyline = new PolylineOptions().color(activities.get(DetectedActivity.UNKNOWN))
+					.width(20);
+			List<PolylineOptions> result = new ArrayList<>();
 			for (CyclePoint point : points) {
-				polygonOptions.add(point.getCoords());
+				if (point.getActivityType() != lastActivityType) {
+					if (!currentPolyline.getPoints().isEmpty()) {
+						result.add(currentPolyline);
+					}
+					Integer newColor = activities.get(point.getActivityType());
+					if (newColor != null) {
+						currentPolyline = connectPolylines(currentPolyline,
+								new PolylineOptions().color(newColor).width(20));
+						// otherwise keep old currentPolyline
+					}
+					lastActivityType = point.getActivityType();
+				}
+				currentPolyline.add(point.getCoords());
 			}
-			Log.i("PRAD", "Loading done");
-			return polygonOptions;
+			if (!currentPolyline.getPoints().isEmpty()) {
+				result.add(currentPolyline);
+			}
+			Log.i("PRAD", "Loading done, segments: " + result.size());
+			return result;
+		}
+
+		private PolylineOptions connectPolylines(PolylineOptions previousPolyline, PolylineOptions newPolyline) {
+			List<LatLng> previousPoints = previousPolyline.getPoints();
+			if (!previousPoints.isEmpty()) {
+				newPolyline.add(previousPoints.get(previousPoints.size() - 1));
+			}
+			return newPolyline;
 		}
 
 		@Override
-		protected void onPostExecute(PolylineOptions opts) {
-			Log.i("PRAD", "Adding polyline to map");
-			map.addPolyline(opts);
-			List<LatLng> points = opts.getPoints();
-			LatLng startPoint = points.get(0);
-			LatLng endPoint = points.get(points.size() - 1);
-			map.moveCamera(CameraUpdateFactory.newLatLngZoom(startPoint, 14));
-			Log.i("PRAD", "Adding polyline to map, done");
-			map.addMarker(new MarkerOptions()
-					.position(startPoint)
-					.title("Startpunkt")
-					.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)));
-			map.addMarker(new MarkerOptions()
-					.position(endPoint)
-					.title("Ende")
-					.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
+		protected void onPostExecute(List<PolylineOptions> opts) {
+			if (!opts.isEmpty()) {
+				Log.i("PRAD", "Adding polyline to map");
+				for (PolylineOptions opt : opts) {
+					map.addPolyline(opt);
+				}
+				List<LatLng> firstSegment = opts.get(0).getPoints();
+				LatLng startPoint = firstSegment.get(0);
+				List<LatLng> lastSegment = opts.get(opts.size() - 1).getPoints();
+				LatLng endPoint = lastSegment.get(lastSegment.size() - 1);
+				map.moveCamera(CameraUpdateFactory.newLatLngZoom(startPoint, 14));
+				Log.i("PRAD", "Adding polyline to map, done");
+				map.addMarker(new MarkerOptions()
+						.position(startPoint)
+						.title("Startpunkt")
+						.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)));
+				map.addMarker(new MarkerOptions()
+						.position(endPoint)
+						.title("Ende")
+						.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
+			}
 		}
 	}
 
@@ -183,6 +223,83 @@ public class ShowMap extends AppCompatActivity {
 			builder.setTitle("Fehler")
 					.setMessage("Fehler beim Exportieren des Tracks. [" + e.getMessage() + "]");
 			builder.setPositiveButton("OK", null).show();
+		}
+	}
+
+	private class AddPointsToMapLayerTask extends AsyncTask<Long, Integer, List<PolylineOptions>> {
+
+		private Context context;
+
+		private AddPointsToMapLayerTask(Context context) {
+			this.context = context;
+		}
+
+		@Override
+		protected List<PolylineOptions> doInBackground(Long... trips) {
+			Log.i("PRAD", "Loading points");
+			DbAdapter dbAdapter = new DbAdapter(context);
+			List<CyclePoint> points = dbAdapter.fetchAllCoordsForTrip(tripId);
+			int lastActivityType = DetectedActivity.UNKNOWN;
+			Map<Integer, Integer> activities = new HashMap<>();
+			activities.put(DetectedActivity.IN_VEHICLE, 0xFFBF360C);
+			activities.put(DetectedActivity.ON_BICYCLE, 0xFF29B6F6);
+			activities.put(DetectedActivity.ON_FOOT, 0xFF00838F);
+			activities.put(DetectedActivity.UNKNOWN, 0xFF455A64);
+			PolylineOptions currentPolyline = new PolylineOptions().color(activities.get(DetectedActivity.UNKNOWN))
+					.width(20);
+			List<PolylineOptions> result = new ArrayList<>();
+			for (CyclePoint point : points) {
+				if (point.getActivityType() != lastActivityType) {
+					if (!currentPolyline.getPoints().isEmpty()) {
+						result.add(currentPolyline);
+					}
+					Integer newColor = activities.get(point.getActivityType());
+					if (newColor != null) {
+						currentPolyline = connectPolylines(currentPolyline,
+								new PolylineOptions().color(newColor).width(20));
+						// otherwise keep old currentPolyline
+					}
+					lastActivityType = point.getActivityType();
+				}
+				currentPolyline.add(point.getCoords());
+			}
+			if (!currentPolyline.getPoints().isEmpty()) {
+				result.add(currentPolyline);
+			}
+			Log.i("PRAD", "Loading done, segments: " + result.size());
+			return result;
+		}
+
+		private PolylineOptions connectPolylines(PolylineOptions previousPolyline, PolylineOptions newPolyline) {
+			List<LatLng> previousPoints = previousPolyline.getPoints();
+			if (!previousPoints.isEmpty()) {
+				newPolyline.add(previousPoints.get(previousPoints.size() - 1));
+			}
+			return newPolyline;
+		}
+
+		@Override
+		protected void onPostExecute(List<PolylineOptions> opts) {
+			if (!opts.isEmpty()) {
+				Log.i("PRAD", "Adding polyline to map");
+				for (PolylineOptions opt : opts) {
+					map.addPolyline(opt);
+				}
+				List<LatLng> firstSegment = opts.get(0).getPoints();
+				LatLng startPoint = firstSegment.get(0);
+				List<LatLng> lastSegment = opts.get(opts.size() - 1).getPoints();
+				LatLng endPoint = lastSegment.get(lastSegment.size() - 1);
+				map.moveCamera(CameraUpdateFactory.newLatLngZoom(startPoint, 14));
+				Log.i("PRAD", "Adding polyline to map, done");
+				map.addMarker(new MarkerOptions()
+						.position(startPoint)
+						.title("Startpunkt")
+						.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)));
+				map.addMarker(new MarkerOptions()
+						.position(endPoint)
+						.title("Ende")
+						.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
+			}
 		}
 	}
 

@@ -38,14 +38,11 @@ public class CyclePoint {
 	private double altitude;
 	private float speed;
 	private long time;
-	private int activity;
+	private int activityType;
 
-	public CyclePoint(double lat, double lgt, long currentTime) {
-		coords = new LatLng(lat, lgt);
-		this.time = currentTime;
-	}
-
-	public CyclePoint(double lat, double lgt, long currentTime, float accuracy, double altitude, float speed) {
+	public CyclePoint(double lat, double lgt, long currentTime, float accuracy, double altitude, float speed,
+			int activityType) {
+		this.activityType = activityType;
 		coords = new LatLng(lat, lgt);
 		this.time = currentTime;
 		this.accuracy = accuracy;
@@ -73,8 +70,8 @@ public class CyclePoint {
 		return time;
 	}
 
-	public int getActivity() {
-		return activity;
+	public int getActivityType() {
+		return activityType;
 	}
 }
 

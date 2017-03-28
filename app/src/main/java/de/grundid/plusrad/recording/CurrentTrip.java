@@ -5,14 +5,17 @@ import de.grundid.plusrad.db.TripData;
 
 public class CurrentTrip {
 
+	public static final int MIN_TRACKING_ACCURACY = 20; // meter
+
 	private TripData tripData;
 	private float distanceTraveled;
 	private float maxSpeed;
 	private float currentSpeed;
 	private int points;
 	private Location location;
-	private long standingTimeTimestamp;
+	private long standingTime;
 	private long pauseTimestamp;
+	private boolean manualPause;
 
 	public CurrentTrip(TripData tripData) {
 		this.tripData = tripData;
@@ -20,14 +23,19 @@ public class CurrentTrip {
 	}
 
 	public CurrentTrip(TripData tripData, float distanceTraveled, float maxSpeed, float currentSpeed, int points,
-			long standingTimeTimestamp, long pauseTimestamp) {
+			long standingTime, long pauseTimestamp, boolean manualPause) {
 		this.tripData = tripData;
 		this.distanceTraveled = distanceTraveled;
 		this.maxSpeed = maxSpeed;
 		this.currentSpeed = currentSpeed;
 		this.points = points;
-		this.standingTimeTimestamp = standingTimeTimestamp;
+		this.standingTime = standingTime;
 		this.pauseTimestamp = pauseTimestamp;
+		this.manualPause = manualPause;
+	}
+
+	public static boolean isLocationAccurate(Location location) {
+		return location != null && location.getAccuracy() < MIN_TRACKING_ACCURACY;
 	}
 
 	public boolean hasTrackData() {
@@ -73,9 +81,9 @@ public class CurrentTrip {
 
 	public long getStandingTime() {
 		if (pauseTimestamp != -1) {
-			return standingTimeTimestamp + (System.currentTimeMillis() - pauseTimestamp);
+			return standingTime + getPauseDuration();
 		} else {
-			return standingTimeTimestamp;
+			return standingTime;
 		}
 	}
 
@@ -89,14 +97,44 @@ public class CurrentTrip {
 
 	public void updatePause(float currentSpeed) {
 		if (currentSpeed > 0.6) {
-			if (pauseTimestamp != -1) {
-				standingTimeTimestamp += System.currentTimeMillis() - pauseTimestamp;
-				pauseTimestamp = -1;
-			}
+			resumePause(false);
 		} else {
-			if (pauseTimestamp == -1) {
-				pauseTimestamp = System.currentTimeMillis();
-			}
+			pause(false);
+		}
+	}
+
+	public void pause() {
+		pause(true);
+	}
+
+	public void resumePause() {
+		resumePause(true);
+	}
+
+	public boolean isManualPause() {
+		return manualPause;
+	}
+
+	private void resumePause(boolean manual) {
+		if (pauseTimestamp != -1) {
+			standingTime += getPauseDuration();
+			pauseTimestamp = -1;
+		}
+		if (manual) {
+			manualPause = false;
+		}
+	}
+
+	private long getPauseDuration() {
+		return System.currentTimeMillis() - pauseTimestamp;
+	}
+
+	private void pause(boolean manual) {
+		if (pauseTimestamp == -1) {
+			pauseTimestamp = System.currentTimeMillis();
+		}
+		if (manual) {
+			manualPause = true;
 		}
 	}
 
@@ -124,11 +162,13 @@ public class CurrentTrip {
 		return points;
 	}
 
-	public long getStandingTimeTimestamp() {
-		return standingTimeTimestamp;
-	}
-
 	public long getPauseTimestamp() {
 		return pauseTimestamp;
+	}
+
+	public void finishRecording() {
+		if (isPause()) {
+			standingTime += getPauseDuration();
+		}
 	}
 }

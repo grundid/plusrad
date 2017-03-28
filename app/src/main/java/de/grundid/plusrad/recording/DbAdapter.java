@@ -41,9 +41,6 @@ import java.util.List;
 
 public class DbAdapter extends SQLiteOpenHelper {
 
-	public static int STATUS_INCOMPLETE = 0;
-	public static int STATUS_COMPLETE = 1;
-	public static int STATUS_SENT = 2;
 	private static final int DATABASE_VERSION = 21;
 	private static final String K_TRIP_ROWID = "_id";
 	private static final String K_TRIP_START = "starttime";
@@ -96,6 +93,13 @@ public class DbAdapter extends SQLiteOpenHelper {
 	private static final String DATABASE_NAME = "data";
 	private static final String DATA_TABLE_TRIPS = "trips";
 	private static final String DATA_TABLE_COORDS = "coords";
+	public static int STATUS_INCOMPLETE = 0;
+	public static int STATUS_COMPLETE = 1;
+	public static int STATUS_SENT = 2;
+
+	public DbAdapter(Context ctx) {
+		super(ctx, DATABASE_NAME, null, DATABASE_VERSION);
+	}
 
 	@Override
 	public void onCreate(SQLiteDatabase db) {
@@ -110,10 +114,6 @@ public class DbAdapter extends SQLiteOpenHelper {
 		onCreate(db);
 	}
 
-	public DbAdapter(Context ctx) {
-		super(ctx, DATABASE_NAME, null, DATABASE_VERSION);
-	}
-
 	public boolean addCoordToTrip(long tripId, CyclePoint pt) {
 		SQLiteDatabase db = getWritableDatabase();
 		ContentValues rowValues = new ContentValues();
@@ -124,7 +124,7 @@ public class DbAdapter extends SQLiteOpenHelper {
 		rowValues.put(K_POINT_ACC, pt.getAccuracy());
 		rowValues.put(K_POINT_ALT, pt.getAltitude());
 		rowValues.put(K_POINT_SPEED, pt.getSpeed());
-		rowValues.put(K_POINT_ACTIVITY, pt.getActivity());
+		rowValues.put(K_POINT_ACTIVITY, pt.getActivityType());
 		boolean success = db.insert(DATA_TABLE_COORDS, null, rowValues) > 0;
 		rowValues = new ContentValues();
 		rowValues.put(K_TRIP_END, pt.getTime());
@@ -142,7 +142,8 @@ public class DbAdapter extends SQLiteOpenHelper {
 				K_POINT_TRIP_ID + "=" + tripId,
 				null, null, null, K_POINT_TIME, null);
 		while (cursor.moveToNext()) {
-			points.add(new CyclePoint(cursor.getDouble(0), cursor.getDouble(1), cursor.getLong(2)));
+			points.add(new CyclePoint(cursor.getDouble(0), cursor.getDouble(1), cursor.getLong(2), cursor.getFloat(3),
+					cursor.getDouble(4), cursor.getFloat(5), cursor.getInt(6)));
 		}
 		cursor.close();
 		db.close();
@@ -257,7 +258,6 @@ public class DbAdapter extends SQLiteOpenHelper {
 				db.delete(DATA_TABLE_COORDS, K_POINT_TRIP_ID + "=" + tripId, null);
 				c.moveToNext();
 			}
-
 			if (badTrips > 0) {
 				db.delete(DATA_TABLE_TRIPS, K_TRIP_STATUS + "=" + STATUS_INCOMPLETE, null);
 			}
